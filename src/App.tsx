@@ -1,9 +1,10 @@
 import React from 'react';
+import Grid from './components/Grid/Grid';
 
 function App(): React.ReactElement {
   return (
     <div>
-      Well hi
+      <Grid />
     </div>
   );
 }
