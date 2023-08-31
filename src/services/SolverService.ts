@@ -53,7 +53,7 @@ export default class SolverService {
 
                 for (let k = 0; k < writeSquare.possibilities.length; k++) {
                   const possibility = writeSquare.possibilities[k];
-                  if (possibility === writeSquare.possibilities[0]) {
+                  if (possibility === readSquare.possibilities[0]) {
                     changedInThisIteration.push(writeSquareIndex);
                     writeSquare.possibilities = writeSquare.possibilities.filter((p) => p !== possibility);
                     solveSteps.push({

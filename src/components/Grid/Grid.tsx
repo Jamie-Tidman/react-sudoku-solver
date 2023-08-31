@@ -102,7 +102,7 @@ function Grid(): React.ReactElement {
       };
     });
 
-    setSolveHistory(SolverService)
+    setSolveHistory(SolverService.solveSudoku(puzzleDefinition));
     setSquares(newSquares);
 
     const intervalId = setInterval(() => {
