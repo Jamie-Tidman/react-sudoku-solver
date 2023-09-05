@@ -32,7 +32,7 @@ function Grid(): React.ReactElement {
 
   function solveTick(): void {
     // eslint-disable-next-line no-useless-return
-    if (historyIndexN >= solveHistory.length) return;
+    if (squares.length === 0 || historyIndexN >= solveHistory.length - 1) return;
 
     setSquares((prev) => {
       const newSquares: CalcSquare[] = structuredClone(prev);
@@ -66,48 +66,38 @@ function Grid(): React.ReactElement {
   }
 
   React.useEffect(() => {
-    const initialChangedSquares: number[] = [];
-
-    const newSquares = puzzleDefinition.squares.map((s, i) => {
-      const possibilities: number[] = s.value ? [s.value] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
-      const setInOpeningLayout: boolean = !!s.value;
-
-      if (setInOpeningLayout) {
-        initialChangedSquares.push(i);
-      }
-
-      return {
-        possibilities,
-        setInOpeningLayout,
-        beingRead: false,
-        beingWritten: false,
-        gridNumber: i
-      };
-    });
-
-    const solveSquares = puzzleDefinition.squares.map((s, i) => {
-      const possibilities: number[] = s.value ? [s.value] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
-      const setInOpeningLayout: boolean = !!s.value;
-
-      if (setInOpeningLayout) {
-        initialChangedSquares.push(i);
-      }
-
-      return {
-        possibilities,
-        setInOpeningLayout,
-        beingRead: false,
-        beingWritten: false,
-        gridNumber: i
-      };
-    });
-
-    setSolveHistory(SolverService.solveSudoku(puzzleDefinition));
-    setSquares(newSquares);
-
     const intervalId = setInterval(() => {
       solveTick();
-    }, 100); 
+    }, 100);
+
+    return () => clearInterval(intervalId);
+  }, [solveHistory]);
+
+  React.useEffect(() => {
+    const initialChangedSquares: number[] = [];
+
+    setSquares((prev) => {
+      const newSquares = puzzleDefinition.squares.map((s, i) => {
+        const possibilities: number[] = s.value ? [s.value] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        const setInOpeningLayout: boolean = !!s.value;
+
+        if (setInOpeningLayout) {
+          initialChangedSquares.push(i);
+        }
+
+        return {
+          possibilities,
+          setInOpeningLayout,
+          beingRead: false,
+          beingWritten: false,
+          gridNumber: i
+        };
+      });
+
+      return newSquares;
+    });
+
+    setSolveHistory((prev) => SolverService.solveSudoku(puzzleDefinition));
   }, []);
 
   function getSquares() {
