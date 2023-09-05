@@ -1,3 +1,5 @@
+/* eslint-disable no-continue */
+/* eslint-disable no-restricted-syntax */
 import BoardDefinition from "../types/BoardDefinition";
 import CalcSquare from "../types/CalcSquare";
 import SolveStep from "../types/SolveStep";
@@ -16,10 +18,11 @@ export default class SolverService {
     // Clone inputs
     let changedSinceLastIteration: number[] = Object.assign([], initialChangeSinceLastIteration);
 
-    const squares: CalcSquare[] = initialBoardState.squares.map((square) => {
+    const squares: CalcSquare[] = initialBoardState.squares.map((square, index) => {
       const possibilities: number[] = square.value ? [square.value] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
       return {
-        possibilities
+        possibilities,
+        index
       };
     });
 
@@ -67,12 +70,113 @@ export default class SolverService {
             }
           }
         }
+
+        // Count the max number of unsolved possibilities that occur in this region
+        const squaresInRegion: CalcSquare[] = region.map((i) => squares[i]);
+        let unsolvedSquaresInRegion: CalcSquare[] = squaresInRegion.filter((square) => square.possibilities.length > 1);
+
+        let maxPossibilities = 1;
+        squaresInRegion.forEach((square) => {
+          maxPossibilities = Math.max(maxPossibilities, square.possibilities.length);
+        });
+
+        for (let i = 2; i <= Math.min(maxPossibilities, unsolvedSquaresInRegion.length - 1); i++) {
+          const groups = this.findDuplicatePossibilityGroups(unsolvedSquaresInRegion, i);
+          groups.forEach((group) => {
+            const groupIndexes = group.map((g) => g.index);
+
+            solveSteps.push({
+              readingSquares: groupIndexes
+            });
+
+            const squaresToConsider = squaresInRegion.filter((s) => s.possibilities.length > 1 && !group.some((el) => el.index === s.index));
+            squaresToConsider.forEach((square) => {
+              solveSteps.push({
+                readingSquares: groupIndexes,
+                writingSquare: square.index
+              });
+
+              const allPossibilities: number[] = group.flatMap((el) => el.possibilities);
+              const readPossibilities = [...new Set(allPossibilities)];
+              readPossibilities.forEach((p) => {
+                if (square.possibilities.some((p1) => p1 === p)) {
+                  changedInThisIteration.push(square.index);
+                  // eslint-disable-next-line no-param-reassign
+                  square.possibilities = square.possibilities.filter((p1) => p1 !== p);
+                  solveSteps.push({
+                    readingSquares: groupIndexes,
+                    writingSquare: square.index,
+                    possibilityRemoved: p
+                  });
+                }
+              });
+            });
+          });
+
+          unsolvedSquaresInRegion = squaresInRegion.filter((square) => square.possibilities.length > 1);
+        }
       });
 
       changedSinceLastIteration = [...new Set(changedInThisIteration)];
     }
 
     return solveSteps;
+  }
+
+  private static findDuplicatePossibilityGroups(squares: CalcSquare[], n: number): CalcSquare[][] {
+    const groups: CalcSquare[][] = [];
+
+    // Store processed possibilities to avoid duplicate groups
+    const processed: Set<string> = new Set();
+
+    // Iterate through each square
+    for (let i = 0; i < squares.length; i++) {
+      const square1 = squares[i];
+
+      // Only consider squares with 'n' or fewer possibilities
+      if (square1.possibilities.length > n) {
+        continue;
+      }
+
+      const sorted1 = [...square1.possibilities].sort((a, b) => a - b);
+      const key = JSON.stringify(sorted1);
+
+      // Skip if this possibility set has already been processed
+      if (processed.has(key)) {
+        continue;
+      }
+
+      // Flag this possibility set as processed
+      processed.add(key);
+
+      // Initialize a group
+      const newGroup: CalcSquare[] = [];
+
+      // Check against all other squares for identical or subset possibilities
+      for (const square2 of squares) {
+        // Only consider squares with 'n' or fewer possibilities
+        if (square2.possibilities.length > n) {
+          continue;
+        }
+
+        // Sort and compare
+        const sorted2 = [...square2.possibilities].sort((a, b) => a - b);
+
+        // Check if sorted2 is a subset of sorted1
+        const isSubset = sorted2.every((val) => sorted1.includes(val));
+
+        if (isSubset) {
+          newGroup.push(square2);
+        }
+      }
+
+      // Only include groups that have exactly 'n' squares with 'n' or fewer possibilities
+      if (newGroup.length === n) {
+        groups.push(newGroup);
+      }
+    }
+
+    return groups;
   }
 
   private static rowForIndex(i: number): number {

@@ -32,7 +32,7 @@ function Grid(): React.ReactElement {
 
   function solveTick(): void {
     // eslint-disable-next-line no-useless-return
-    if (squares.length === 0 || historyIndexN >= solveHistory.length - 1) return;
+    if (historyIndexN >= solveHistory.length) return;
 
     setSquares((prev) => {
       const newSquares: CalcSquare[] = structuredClone(prev);
@@ -44,17 +44,19 @@ function Grid(): React.ReactElement {
         s.beingWritten = false;
       });
 
-      const currentStep: SolveStep = solveHistory[historyIndexN];
-      const readSquares = currentStep.readingSquares;
-      readSquares.forEach((s) => {
-        newSquares[s].beingRead = true;
-      });
+      if (historyIndexN < solveHistory.length - 1) {
+        const currentStep: SolveStep = solveHistory[historyIndexN];
+        const readSquares = currentStep.readingSquares;
+        readSquares.forEach((s) => {
+          newSquares[s].beingRead = true;
+        });
 
-      if (currentStep.writingSquare) {
-        const writingSquare = newSquares[currentStep.writingSquare];
-        writingSquare.beingWritten = true;
-        if (currentStep.possibilityRemoved) {
-          writingSquare.possibilities = writingSquare.possibilities.filter((p) => p !== currentStep.possibilityRemoved);
+        if (currentStep.writingSquare) {
+          const writingSquare = newSquares[currentStep.writingSquare];
+          writingSquare.beingWritten = true;
+          if (currentStep.possibilityRemoved) {
+            writingSquare.possibilities = writingSquare.possibilities.filter((p) => p !== currentStep.possibilityRemoved);
+          }
         }
       }
 
